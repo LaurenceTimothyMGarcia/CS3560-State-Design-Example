@@ -44,3 +44,65 @@ class LockedState extends State
         //LOCKED
     }
 }
+
+class ReadyState extends State 
+{
+    void clickLock()
+    {
+        player.changeState(new LockedState(player));
+    }
+
+    void clickPlay()
+    {
+        player.startPlayback();
+        player.changeState(new PlayingState(player));
+    }
+
+    void clickNext()
+    {
+        player.nextSong();
+    }
+
+    void clickPrevious()
+    {
+        player.previousSong();
+    }
+}
+
+class PlayState extends State 
+{
+    void clickLock()
+    {
+        player.changeState(new LockedState(player));
+    }
+
+    void clickPlay()
+    {
+        player.stopPlayback();
+        player.changeState(new ReadyState(player));
+    }
+
+    void clickNext()
+    {
+        if (event.doubleClick)
+        {
+            player.nextSong();
+        }
+        else
+        {
+            player.fastForward(5)
+        }
+    }
+
+    void clickPrevious()
+    {
+        if (event.doubleClick)
+        {
+            player.previousSong();
+        }
+        else
+        {
+            player.rewind(5)
+        }
+    }
+}
