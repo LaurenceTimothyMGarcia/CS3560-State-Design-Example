@@ -1,3 +1,5 @@
+//EXAMPLE PROVIDED BY https://refactoring.guru/design-patterns/state 
+
 public class AudioPlayer
 {
 
