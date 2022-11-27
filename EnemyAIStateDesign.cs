@@ -36,6 +36,11 @@ public class EnemyAIStateDesign : MonoBehaviour
     {
         playerInRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
 
+        /*** 
+         * 
+         * State changes here
+         * 
+        ***/
         if (playerInRange)
         {
             //attack state here
