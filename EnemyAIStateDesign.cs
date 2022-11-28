@@ -4,8 +4,18 @@ using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 
+
+/*** 
+ * 
+ * Main Class
+ * Runs the agent
+ * 
+***/
 public class EnemyAIStateDesign : MonoBehaviour
 {
+    //Any variable with [SeralizeField] will show up in inspector to edit values later on
+
+    //State of the enemy agent
     private State state;
 
     //Variables to initialize the enemy AI
@@ -41,6 +51,8 @@ public class EnemyAIStateDesign : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //Checks if player is in chase range and attack range
+        //Returns boolean if player is within the radius
         playerInRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
         playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
 
@@ -49,25 +61,33 @@ public class EnemyAIStateDesign : MonoBehaviour
          * State changes here
          * 
         ***/
+
+        //Enters attack state if player is within chase range and attack range
         if (playerInRange && playerInAttackRange)
         {
             state = new AttackState(new EnemyAIStateDesign());
         }
+
+        //Enters chase state if player is within the chase range
+        //but out of attack range
         else if (playerInRange && !playerInAttackRange)
         {
             state = new ChaseState(new EnemyAIStateDesign());
         }
+
+        //Enters patrol state if player is out of both ranges
         else if (!playerInRange && !playerInAttackRange)
         {
             state = new PatrolState(new EnemyAIStateDesign());
         }
 
+        //Calls functions to set speed, where it goes, and if it attacks the player
         state.SetMovementSpeed();
         state.CurrentDestination();
         state.AttackPlayer();
     }
 
-    //DEBUGGING SPHERE TO SHOW DISTANCE
+    //DEBUGGING SPHERE TO SHOW DISTANCE OF RANGES
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
@@ -81,7 +101,11 @@ public class EnemyAIStateDesign : MonoBehaviour
     }
 
 
-    //Setter and Getter Methods
+    /***
+     *
+     * Setter and Getter Methods
+     *
+     ***/
     public void SetSpeed(float s)
     {
         speed = s;
@@ -91,7 +115,6 @@ public class EnemyAIStateDesign : MonoBehaviour
     {
         return speed;
     }
-
 
     public float GetPatrolSpeed()
     {
@@ -144,7 +167,7 @@ public class EnemyAIStateDesign : MonoBehaviour
     }
 }
 
-//Abstract class for our state
+//Abstract class for state class
 abstract class State : MonoBehaviour
 {
     protected EnemyAIStateDesign enemyAI;
@@ -156,7 +179,11 @@ abstract class State : MonoBehaviour
 
     //Movement speed of enemy changes depending on current state
     abstract public void SetMovementSpeed();
+
+    //Sets the destination of where the enemy agent should go
     abstract public void CurrentDestination();
+
+    //Attacks the player
     abstract public void AttackPlayer();
 }
 
@@ -166,7 +193,6 @@ abstract class State : MonoBehaviour
  *  If player is out of range, will get a random point and patrol to that point
  * 
 ***/
-
 class PatrolState : State
 {
     private float timerWalking;
@@ -182,6 +208,7 @@ class PatrolState : State
         enemyAI.SetSpeed(enemyAI.GetPatrolSpeed());
     }
 
+    //Obtains random patrol points to travel to
     public override void CurrentDestination()
     {
         RandomPatrol();
@@ -253,7 +280,6 @@ class PatrolState : State
  *  If player is in range, it will chase the player
  * 
 ***/
-
 class ChaseState : State
 {
     public ChaseState(EnemyAIStateDesign enemy) : base(enemy)
@@ -266,6 +292,8 @@ class ChaseState : State
         enemyAI.SetSpeed(enemyAI.GetChaseSpeed());
     }
 
+    //Sets destination to the player's position
+    //Allows it to "chase" player
     public override void CurrentDestination()
     {
         enemyAI.enemy.SetDestination(enemyAI.player.position);
@@ -297,11 +325,15 @@ class AttackState : State
         enemyAI.SetSpeed(0);
     }
 
+    //Makes enemy stand still while it fires a shot
     public override void CurrentDestination()
     {
         enemyAI.enemy.SetDestination(enemyAI.GetEnemyPos());
     }
 
+    //Enemy will shoot a sphere towards player
+    //Physics instantiate with forward force
+    //Due to rigid body, might push back the enemy agent
     public override void AttackPlayer()
     {
         enemyAI.enemy.SetDestination(transform.position);
