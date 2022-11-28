@@ -49,15 +49,15 @@ public class EnemyAIStateDesign : MonoBehaviour
          * State changes here
          * 
         ***/
-        if (playerInRange)
+        if (playerInRange && playerInAttackRange)
         {
             state = new AttackState(new EnemyAIStateDesign());
         }
-        else if (playerInRange)
+        else if (playerInRange && !playerInAttackRange)
         {
             state = new ChaseState(new EnemyAIStateDesign());
         }
-        else
+        else if (!playerInRange && !playerInAttackRange)
         {
             state = new PatrolState(new EnemyAIStateDesign());
         }
