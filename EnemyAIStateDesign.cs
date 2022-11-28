@@ -20,13 +20,20 @@ public class EnemyAIStateDesign : MonoBehaviour
     [SerializeField] private float chaseSpeed;
     private float speed;
 
-    //Patrol Public Variables
+    //Patrol Variables
     [SerializeField] private Vector3 walkPoint;
     [SerializeField] private float walkPointRange;
     [SerializeField] private float timeWalk;
 
+    //Check if the player is in range for attack or chase
     [SerializeField] private float sightRange;
     [SerializeField] private bool playerInRange;
+
+    //Attack Variables
+    [SerializeField] private float attackRange;
+    [SerializeField] private bool playerInAttackRange;
+    [SerializeField] private float timeBetweenAttacks;
+    [SerializeField] private GameObject projectile;
 
     //Debug
     [SerializeField] private TextMeshProUGUI debugWalking;
@@ -35,6 +42,7 @@ public class EnemyAIStateDesign : MonoBehaviour
     void Update()
     {
         playerInRange = Physics.CheckSphere(transform.position, sightRange, whatIsPlayer);
+        playerInAttackRange = Physics.CheckSphere(transform.position, attackRange, whatIsPlayer);
 
         /*** 
          * 
@@ -43,7 +51,7 @@ public class EnemyAIStateDesign : MonoBehaviour
         ***/
         if (playerInRange)
         {
-            //attack state here
+            state = new AttackState(new EnemyAIStateDesign());
         }
         else if (playerInRange)
         {
@@ -56,6 +64,7 @@ public class EnemyAIStateDesign : MonoBehaviour
 
         state.SetMovementSpeed();
         state.CurrentDestination();
+        state.AttackPlayer();
     }
 
     //DEBUGGING SPHERE TO SHOW DISTANCE
@@ -64,8 +73,11 @@ public class EnemyAIStateDesign : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, sightRange);
 
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, walkPointRange);
+        //Gizmos.color = Color.green;
+        //Gizmos.DrawWireSphere(transform.position, walkPointRange);
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 
 
@@ -120,6 +132,16 @@ public class EnemyAIStateDesign : MonoBehaviour
     {
         return this.transform.position;
     }
+
+    public GameObject Bullet()
+    {
+        return projectile;
+    }
+
+    public float GetTimeBetweenAttacks()
+    {
+        return timeBetweenAttacks;
+    }
 }
 
 //Abstract class for our state
@@ -135,7 +157,15 @@ abstract class State : MonoBehaviour
     //Movement speed of enemy changes depending on current state
     abstract public void SetMovementSpeed();
     abstract public void CurrentDestination();
+    abstract public void AttackPlayer();
 }
+
+/*** 
+ * 
+ * Patrol State
+ *  If player is out of range, will get a random point and patrol to that point
+ * 
+***/
 
 class PatrolState : State
 {
@@ -157,7 +187,13 @@ class PatrolState : State
         RandomPatrol();
     }
 
+    public override void AttackPlayer()
+    {
+        //Nothing
+    }
 
+    //Selects random point and patrols to said point
+    //Timer has been added if the player gets to the point early to reset the new point
     private void RandomPatrol()
     {
         Vector3 walkPoint;
@@ -188,6 +224,7 @@ class PatrolState : State
         }
     }
 
+    //Sets the random point
     private void RandomWalkPoint()
     {
         float wpRange = enemyAI.GetWalkPointRange();
@@ -210,6 +247,13 @@ class PatrolState : State
     }
 }
 
+/*** 
+ * 
+ * Chase State
+ *  If player is in range, it will chase the player
+ * 
+***/
+
 class ChaseState : State
 {
     public ChaseState(EnemyAIStateDesign enemy) : base(enemy)
@@ -225,5 +269,58 @@ class ChaseState : State
     public override void CurrentDestination()
     {
         enemyAI.enemy.SetDestination(enemyAI.player.position);
+    }
+
+    public override void AttackPlayer()
+    {
+        //Nothing
+    }
+}
+
+/*** 
+ * 
+ * Attack State
+ *  If player is in range, it will shoot a ball at the player
+ * 
+***/
+class AttackState : State
+{
+    private bool alreadyAttacked;
+
+    public AttackState(EnemyAIStateDesign enemy) : base(enemy)
+    {
+        this.enemyAI = enemy;
+    }
+
+    public override void SetMovementSpeed()
+    {
+        enemyAI.SetSpeed(0);
+    }
+
+    public override void CurrentDestination()
+    {
+        enemyAI.enemy.SetDestination(enemyAI.GetEnemyPos());
+    }
+
+    public override void AttackPlayer()
+    {
+        enemyAI.enemy.SetDestination(transform.position);
+
+        transform.LookAt(enemyAI.player);
+
+        if (!alreadyAttacked)
+        {
+            Rigidbody rb = Instantiate(enemyAI.Bullet(), transform.position, Quaternion.identity).GetComponent<Rigidbody>();
+            rb.AddForce(transform.forward * 32f, ForceMode.Impulse);
+            rb.AddForce(transform.up * 8f, ForceMode.Impulse);
+
+            alreadyAttacked = true;
+            Invoke(nameof(ResetAttack), enemyAI.GetTimeBetweenAttacks());
+        }
+    }
+
+    private void ResetAttack()
+    {
+        alreadyAttacked = false;
     }
 }
